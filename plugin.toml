@@ -1,4 +1,4 @@
 [plugin]
-description = "Notify rollbar on deploy"
-version = "0.5.0"
+description = "Notify Sentry on deploy"
+version = "0.1.0"
 [plugin.config]

@@ -2,34 +2,31 @@
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 
 APP="$1"
-ROLLBAR_TOKEN=$(dokku config:get "$APP" ROLLBAR_TOKEN || echo)
+SENTRY_AUTH_TOKEN=$(dokku config:get "$APP" SENTRY_AUTH_TOKEN || echo)
+ORGANIZATION=$(dokku config:get "$APP" SENTRY_ORGANIZATION || echo)
+VERSION=$(sentry-cli releases propose-version)
 GIT_REV=$(dokku config:get "$APP" GIT_REV || echo "$GIT_REV")
 
-if [[ $ROLLBAR_TOKEN ]]; then
-  echo "-----> Notifying Rollbar ..."
+if [[ $SENTRY_AUTH_TOKEN ]]; then
+    echo "-----> Notifying Sentry ..."
 
-  ENVIRONMENT=$(
-    dokku config:get "$APP" ROLLBAR_ENV ||
-    dokku config:get "$APP" RAILS_ENV ||
-    dokku config:get "$APP" RACK_ENV ||
-    echo 'production'
-  )
+    ENVIRONMENT=$(
+	dokku config:get "$APP" SENTRY_ENV ||
+            dokku config:get "$APP" RAILS_ENV ||
+	    dokku config:get "$APP" RACK_ENV ||
+	    echo 'production'
+	       )
 
-  REVISION="$GIT_REV"
-  if [[ ! $REVISION ]]; then
-    echo "       WARNING: \$GIT_REV is not available - falling back to parsing git commit hash from git log"
-    echo "       On Dokku < 0.12.0, install dokku-git-rev plugin to fix this error. See https://github.com/iloveitaly/dokku-rollbar/issues/4"
-    REVISION=$(cd $DOKKU_ROOT/$APP && git log -n 1 --pretty=format:"%H" 2>/dev/null)
-  fi
+    REVISION="$GIT_REV"
+    if [[ ! $REVISION ]]; then
+        echo "       WARNING: \$GIT_REV is not available - falling back to parsing git commit hash from git log"
+	echo "       On Dokku < 0.12.0, install dokku-git-rev plugin to fix this error. See https://github.com/iloveitaly/dokku-rollbar/issues/4"
+	REVISION=$(cd $DOKKU_ROOT/$APP && git log -n 1 --pretty=format:"%H" 2>/dev/null)
+    fi
 
-  LOCAL_USERNAME=`whoami`
+    LOCAL_USERNAME=`whoami`
+    SENTRY_RESULT=$(sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" set-commits "$VERSION" --auto && \
+			   sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" deploys "$VERSION" new -e "$ENVIRONMENT")
 
-  ROLLBAR_RESULT=$(curl -s https://api.rollbar.com/api/1/deploy/ \
-    -F access_token=$ROLLBAR_TOKEN \
-    -F environment=$ENVIRONMENT \
-    -F revision=$REVISION \
-    -F local_username=$LOCAL_USERNAME
-  )
-
-  echo "       ${ROLLBAR_RESULT}"
+    echo "       ${SENTRY_RESULT}"
 fi
