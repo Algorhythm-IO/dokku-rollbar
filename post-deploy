@@ -4,7 +4,6 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 APP="$1"
 SENTRY_AUTH_TOKEN=$(dokku config:get "$APP" SENTRY_AUTH_TOKEN || echo)
 ORGANIZATION=$(dokku config:get "$APP" SENTRY_ORGANIZATION || echo)
-VERSION=$(sentry-cli releases propose-version)
 GIT_REV=$(dokku config:get "$APP" GIT_REV || echo "$GIT_REV")
 
 if [[ $SENTRY_AUTH_TOKEN ]]; then
@@ -25,9 +24,8 @@ if [[ $SENTRY_AUTH_TOKEN ]]; then
     fi
 
     LOCAL_USERNAME=`whoami`
-    echo "version is:" "$VERSION"
-    SENTRY_RESULT=$(#sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" set-commits "$VERSION" --auto && \
-			   sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" deploys "$VERSION" new -e "$ENVIRONMENT")
+    SENTRY_RESULT=$(sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" set-commits "$REVISION" --auto && \
+			   sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" deploys "$REVISION" new -e "$ENVIRONMENT")
 
     echo "       ${SENTRY_RESULT}"
 fi
