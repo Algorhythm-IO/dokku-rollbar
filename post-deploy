@@ -24,7 +24,7 @@ if [[ $SENTRY_AUTH_TOKEN ]]; then
     fi
 
     LOCAL_USERNAME=`whoami`
-    SENTRY_RESULT=$(sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" set-commits "$REVISION" --auto && \
+    SENTRY_RESULT=$(#sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" set-commits "$REVISION" --auto && \
 			   sentry-cli --auth-token "$SENTRY_AUTH_TOKEN" releases --org "$ORGANIZATION" deploys "$REVISION" new -e "$ENVIRONMENT")
 
     echo "       ${SENTRY_RESULT}"
